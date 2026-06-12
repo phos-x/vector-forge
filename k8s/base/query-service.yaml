@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: query-service
+  namespace: vector-forge
+  annotations:
+    eks.amazonaws.com/role-arn: ""  # Set by kustomize overlay
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: query-service
+  namespace: vector-forge
+  labels:
+    app: query-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: query-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: query-service
+  namespace: vector-forge
+  labels:
+    app: query-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: query-service
+  template:
+    metadata:
+      labels:
+        app: query-service
+    spec:
+      serviceAccountName: query-service
+      containers:
+      - name: query-service
+        image: query-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: AWS_REGION
+          value: us-east-1
+        - name: DYNAMODB_TABLE
+          value: ""
+        - name: S3_DOCUMENTS_BUCKET
+          value: ""
+        - name: S3_VECTORS_BUCKET
+          value: ""
+        - name: LLM_ENDPOINT
+          value: http://llm-mock:8080
+        - name: MAX_RESULTS
+          value: "5"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5

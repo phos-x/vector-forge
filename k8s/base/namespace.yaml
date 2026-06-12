@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vector-forge
+  labels:
+    name: vector-forge
+    app.kubernetes.io/name: vector-forge

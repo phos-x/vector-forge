@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: corpus-mock
+  namespace: vector-forge
+  labels:
+    app: corpus-mock
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9000
+    targetPort: 9000
+    protocol: TCP
+    name: s3
+  - port: 9001
+    targetPort: 9001
+    protocol: TCP
+    name: console
+  selector:
+    app: corpus-mock
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: corpus-mock
+  namespace: vector-forge
+  labels:
+    app: corpus-mock
+spec:
+  serviceName: corpus-mock
+  replicas: 1
+  selector:
+    matchLabels:
+      app: corpus-mock
+  template:
+    metadata:
+      labels:
+        app: corpus-mock
+    spec:
+      containers:
+      - name: minio
+        image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+        args:
+        - server
+        - /data
+        - --console-address
+        - :9001
+        env:
+        - name: MINIO_ROOT_USER
+          value: minioadmin
+        - name: MINIO_ROOT_PASSWORD
+          value: minioadmin
+        ports:
+        - containerPort: 9000
+          name: s3
+        - containerPort: 9001
+          name: console
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi

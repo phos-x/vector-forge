@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-mock
+  namespace: vector-forge
+  labels:
+    app: llm-mock
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: llm-mock
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-mock
+  namespace: vector-forge
+  labels:
+    app: llm-mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llm-mock
+  template:
+    metadata:
+      labels:
+        app: llm-mock
+    spec:
+      containers:
+      - name: llm-mock
+        image: llm-mock:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: RESPONSE_DELAY_MS
+          value: "100"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
